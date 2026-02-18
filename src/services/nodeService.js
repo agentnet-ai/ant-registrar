@@ -27,4 +27,28 @@ const changeNodeState = async (nodeId, newState, reason) => {
   await logEvent(nodeId, 'STATE_CHANGE', { newState, reason });
 };
 
-module.exports = { issueNode, changeNodeState };
+const getNode = async (nodeId) => {
+  const [rows] = await pool.execute(
+    `SELECT id, state, state_reason, created_at, state_changed_at FROM nodes WHERE id = ?`,
+    [nodeId],
+  );
+
+  if (rows.length === 0) {
+    const err = new Error('Node not found');
+    err.code = 'NOT_FOUND';
+    throw err;
+  }
+
+  const row = rows[0];
+  return {
+    nodeId: row.id,
+    state: row.state,
+    stateReason: row.state_reason || null,
+    createdAt: new Date(row.created_at).toISOString(),
+    stateChangedAt: row.state_changed_at
+      ? new Date(row.state_changed_at).toISOString()
+      : null,
+  };
+};
+
+module.exports = { issueNode, changeNodeState, getNode };
