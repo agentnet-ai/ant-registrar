@@ -8,9 +8,13 @@ const VALID_STATES = ['Active', 'Inactive', 'Retired'];
 
 router.post('/', async (req, res) => {
   try {
-    const nodeId = await issueNode();
+    const { ownerSlug } = req.body;
+    const nodeId = await issueNode(ownerSlug);
     res.status(201).json({ nodeId });
   } catch (err) {
+    if (err.code === 'OWNER_SLUG_REQUIRED' || err.code === 'OWNER_SLUG_INVALID' || err.code === 'OWNER_NOT_FOUND') {
+      return res.status(400).json({ error: err.message, code: err.code });
+    }
     res.status(500).json({ error: 'Failed to issue node' });
   }
 });
