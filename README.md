@@ -2,52 +2,55 @@
 
 Identity and lifecycle service for AgentNet that issues node identifiers and maintains canonical ownership records.
 
+Status: Alpha / Reference Implementation
+Docs: https://www.agent-net.ai
+Org: https://github.com/agentnet-ai
+
 ## What it does
 
-`ant-registrar` is the identity authority in the AgentNet reference stack. It stores canonical owners, creates node identities, and tracks lifecycle state changes.
+`ant-registrar` is the registrar component of the AgentNet reference architecture.
 
-The service provides lookup endpoints consumed by resolver and orchestration layers. It also manages owner alias resolution so clients can resolve canonical ownership consistently over time.
+It is responsible for canonical owner identity, node registration, and lifecycle state management used by other components in the stack.
 
-The implementation is a reference baseline for identity, namespace, and audit behavior aligned to ANS Core v2.0.
+In a local development environment, it typically runs alongside `ant-resolver` for identity lookup and policy checks, with `ant-capsulizer` and `ant-orchestrator` interacting through resolver workflows.
 
 ## Where it fits
 
-Canonical flow:
+Within the canonical AgentNet flow:
 
 1. Capsulizer
-2. Registrar (this repository)
+2. Registrar
 3. Resolver
 4. Orchestrator
+
+This repository provides the registrar role.
 
 ## Quickstart
 
 ```bash
 cp .env.example .env
 npm install
-npm run dev
 ```
 
-Also available:
+Run commands:
 
-- `npm run start`
+- `npm run dev`
+- `npm start`
 - `npm run reset:dev`
-- `npm run test`
+- `npm test`
 
 ## Configuration
 
 Runtime configuration is read from `.env`, with starter values in `.env.example`.
 
-## Repo structure
-
-- `src/` registrar service code
-- `migrations/` SQL migrations for owner and alias data models
-- `scripts/` development reset utilities
-
 ## Status
 
-Alpha, reference implementation.
+Status: Alpha / Reference Implementation  
+These components are intended to demonstrate ANS-aligned architecture patterns.
 
 ## Related Repositories
+
+Other core AgentNet reference components:
 
 - https://github.com/agentnet-ai/AgentNet
 - https://github.com/agentnet-ai/ant-capsulizer
@@ -57,4 +60,4 @@ Alpha, reference implementation.
 
 ## License
 
-Apache License 2.0. See `LICENSE`.
+Apache License 2.0. See `LICENSE` for details.

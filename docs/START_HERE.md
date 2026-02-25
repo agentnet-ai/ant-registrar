@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This guide gets `ant-registrar` running locally and explains where it sits in the AgentNet identity and lifecycle flow.
+Set up and run `ant-registrar` locally as the identity and lifecycle stage in the AgentNet reference flow.
 
-## Prerequisites
+## Prereqs
 
 - Node.js and npm
 - MySQL
@@ -17,17 +17,12 @@ cp .env.example .env
 npm install
 ```
 
-## Run
+## Run commands
 
-```bash
-npm run dev
-```
-
-Useful alternatives:
-
-- `npm run start`
+- `npm run dev`
+- `npm start`
 - `npm run reset:dev`
-- `npm run test`
+- `npm test`
 
 ## Typical local integration flow
 
@@ -36,9 +31,10 @@ Useful alternatives:
 3. Run `ant-capsulizer` to register and ingest node-linked content.
 4. Run `ant-orchestrator` to execute end-to-end query flows over resolver data.
 
-## Links
+## Related Repositories
 
-- AgentNet: https://github.com/agentnet-ai/AgentNet
-- ant-capsulizer: https://github.com/agentnet-ai/ant-capsulizer
-- ant-resolver: https://github.com/agentnet-ai/ant-resolver
-- ant-orchestrator: https://github.com/agentnet-ai/ant-orchestrator
+- https://github.com/agentnet-ai/AgentNet
+- https://github.com/agentnet-ai/ant-capsulizer
+- https://github.com/agentnet-ai/ant-registrar
+- https://github.com/agentnet-ai/ant-resolver
+- https://github.com/agentnet-ai/ant-orchestrator
