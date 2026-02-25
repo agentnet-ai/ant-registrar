@@ -1,111 +1,60 @@
 # ant-registrar
 
-Registrar service for the ANT network. Issues Node IDs, manages lifecycle state, and appends audit events.
+Identity and lifecycle service for AgentNet that issues node identifiers and maintains canonical ownership records.
 
-## Architecture
+## What it does
 
-### Owners
+`ant-registrar` is the identity authority in the AgentNet reference stack. It stores canonical owners, creates node identities, and tracks lifecycle state changes.
 
-`owners` is the **canonical identity authority** in the registrar. Every node must belong to an owner. Owners are identified by an immutable `owner_slug` (lowercase, unique).
+The service provides lookup endpoints consumed by resolver and orchestration layers. It also manages owner alias resolution so clients can resolve canonical ownership consistently over time.
 
-In **development** (`NODE_ENV=development`) or when `ALLOW_DEFAULT_OWNER=true`, omitting `ownerSlug` from `POST /nodes` defaults the node to the canonical `agentnet` owner. In **production** (any other `NODE_ENV` without `ALLOW_DEFAULT_OWNER=true`), `ownerSlug` is mandatory — omitting it returns HTTP 400 with error code `OWNER_SLUG_REQUIRED`.
+The implementation is a reference baseline for identity, namespace, and audit behavior aligned to ANS Core v2.0.
 
-#### owner_slug immutability
+## Where it fits
 
-`owner_slug` is an immutable namespace handle. Once an owner is created, its slug cannot be changed — it serves as the stable public identifier referenced by nodes, audit logs, and external systems. Any attempt to modify `owner_slug` via an update endpoint will be rejected with HTTP 400 and error code `OWNER_SLUG_IMMUTABLE`.
+Canonical flow:
 
-Slugs are normalized to lowercase on creation and must match `[a-z][a-z0-9-]{1,63}` (2–64 characters, starting with a letter, containing only lowercase alphanumerics and hyphens). Invalid slugs are rejected with error code `OWNER_SLUG_INVALID`.
+1. Capsulizer
+2. Registrar (this repository)
+3. Resolver
+4. Orchestrator
 
-#### Owner aliases
-
-The `owner_aliases` table provides a stable redirect layer for legacy or renamed namespace slugs. Each alias maps an `alias_slug` to a canonical `owner_id` and has a status of `active` or `retired`.
-
-When `resolveOwnerId` is called, it first looks up `owners.owner_slug`. If no match is found, it falls back to `owner_aliases.alias_slug` (active only). This means the resolver and orchestrator can always pass the slug they know — if the canonical slug was renamed, a matching alias will transparently resolve to the correct `owner_id`. No endpoints, audit logs, or node references need updating when an alias is added.
-
-### Identity API
-
-`GET /v1/owners/:ownerSlug` — Read-only endpoint that resolves an owner slug (canonical or alias) and returns the canonical owner record.
-
-**Response fields:**
-
-| Field | Description |
-|---|---|
-| `ownerId` | Internal owner ID (bigint) |
-| `ownerSlug` | Canonical `owner_slug` from the `owners` table |
-| `displayName` | Human-readable name, or `null` |
-| `status` | Owner status: `active`, `suspended`, or `retired` |
-| `resolvedFromSlug` | The normalized input slug that was looked up |
-| `resolvedVia` | `canonical` if matched `owners.owner_slug`, `alias` if matched via `owner_aliases` |
-
-**Error codes:** `OWNER_SLUG_REQUIRED` (400), `OWNER_SLUG_INVALID` (400), `OWNER_NOT_FOUND` (404).
-
-`GET /v1/nodes/:nodeId` — Read-only endpoint that returns a node's identity and its canonical owner.
-
-**Response fields:**
-
-| Field | Description |
-|---|---|
-| `nodeId` | UUID v4 node identifier |
-| `ownerId` | Internal owner ID (bigint) |
-| `ownerSlug` | Canonical `owner_slug` from the `owners` table |
-| `lifecycleState` | Current node state (`Active`, `Inactive`, `Retired`), or `null` if not yet tracked |
-| `createdAt` | ISO 8601 timestamp of node creation |
-| `updatedAt` | ISO 8601 timestamp of last state change, or `null` if never changed |
-
-**Error codes:** `NODE_NOT_FOUND` (404) — returned when the given `nodeId` does not match any registered node.
-
-`POST /v1/nodes/batch` — Bulk identity lookup for resolver/orchestrator efficiency. Fetches multiple nodes in a single query.
-
-**Request body:**
-
-```json
-{
-  "nodeIds": ["uuid-1", "uuid-2", "uuid-3"]
-}
-```
-
-- `nodeIds` must be an array of 1–500 non-empty strings. Each element must be a `string` with non-whitespace content. Duplicates are de-duplicated server-side while preserving first-occurrence order.
-
-**Response:**
-
-```json
-{
-  "found": [
-    { "nodeId": "uuid-1", "ownerId": 1, "ownerSlug": "agentnet", "lifecycleState": "Active", "createdAt": "...", "updatedAt": null },
-    { "nodeId": "uuid-3", "ownerId": 1, "ownerSlug": "agentnet", "lifecycleState": "Retired", "createdAt": "...", "updatedAt": "..." }
-  ],
-  "missing": ["uuid-2"]
-}
-```
-
-- `found` preserves request order (first occurrence); each entry matches the `GET /v1/nodes/:nodeId` shape.
-- `missing` lists nodeIds not found, also in request order.
-
-**Ordering example:** Given input `["c", "a", "b", "a"]`, de-duplication keeps `["c", "a", "b"]`. If `"a"` exists but `"b"` and `"c"` do not: `found: [{ nodeId: "a", ... }]`, `missing: ["c", "b"]`.
-
-**Error codes:** `INVALID_REQUEST` (400) — `nodeIds` is not an array, length is outside 1–500, or an element is not a non-empty string.
-
-### Nodes
-
-Each node has a UUID v4 identifier, a lifecycle state (`Active`, `Inactive`, `Retired`), and is linked to an owner via `owner_id`.
-
-### Audit Log
-
-All state mutations are recorded as append-only audit events in the `audit_log` table.
-
-## Getting Started
+## Quickstart
 
 ```bash
-cp .env.example .env   # configure DB credentials
+cp .env.example .env
 npm install
-npm run dev            # start with nodemon
+npm run dev
 ```
 
-## Migrations
+Also available:
 
-Run the SQL migration files in `migrations/` in order against your MySQL database:
+- `npm run start`
+- `npm run reset:dev`
+- `npm run test`
 
-```bash
-mysql -u root -p ant_registrar < migrations/001_create_owners_and_link_nodes.sql
-mysql -u root -p ant_registrar < migrations/003_create_owner_aliases.sql
-```
+## Configuration
+
+Runtime configuration is read from `.env`, with starter values in `.env.example`.
+
+## Repo structure
+
+- `src/` registrar service code
+- `migrations/` SQL migrations for owner and alias data models
+- `scripts/` development reset utilities
+
+## Status
+
+Alpha, reference implementation.
+
+## Related Repositories
+
+- https://github.com/agentnet-ai/AgentNet
+- https://github.com/agentnet-ai/ant-capsulizer
+- https://github.com/agentnet-ai/ant-registrar
+- https://github.com/agentnet-ai/ant-resolver
+- https://github.com/agentnet-ai/ant-orchestrator
+
+## License
+
+Apache License 2.0. See `LICENSE`.

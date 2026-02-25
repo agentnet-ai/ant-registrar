@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "reset:dev": "node scripts/reset-dev.js",
     "test": "node -e \"require('dotenv').config(); console.log(process.env.DB_HOST || 'DB_HOST not set')\""
   },
   "keywords": [],
