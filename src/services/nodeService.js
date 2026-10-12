@@ -1,16 +1,23 @@
 const { generateNodeId } = require('../utils/idGenerator');
 const { logEvent } = require('./auditService');
-const { resolveOwnerId } = require('./ownerService');
+const { normalizeOwnerRef } = require('./ownerService');
 const pool = require('../db');
 
-const issueNode = async (ownerSlug) => {
-  const ownerId = await resolveOwnerId(ownerSlug);
+const issueNode = async (ownerRef) => {
+  const resolvedOwner = await normalizeOwnerRef(ownerRef);
+  const ownerId = resolvedOwner.ownerId;
   const nodeId = generateNodeId();
   await pool.execute(
     `INSERT INTO nodes (id, owner_id, state, created_at) VALUES (?, ?, 'Active', NOW())`,
     [nodeId, ownerId],
   );
-  await logEvent(nodeId, 'ISSUED', { nodeId, ownerSlug, state: 'Active' });
+  await logEvent(nodeId, 'ISSUED', {
+    nodeId,
+    ownerId,
+    ownerSlug: resolvedOwner.ownerSlug,
+    ownerRefSlug: resolvedOwner.resolvedFromSlug || null,
+    state: 'Active',
+  });
   return nodeId;
 };
 

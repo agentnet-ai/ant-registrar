@@ -8,11 +8,22 @@ const VALID_STATES = ['Active', 'Inactive', 'Retired'];
 
 router.post('/', async (req, res) => {
   try {
-    const { ownerSlug } = req.body;
-    const nodeId = await issueNode(ownerSlug);
+    const ownerRef = {
+      ownerId: req.body?.ownerId ?? req.body?.owner_id,
+      ownerSlug: req.body?.ownerSlug ?? req.body?.owner_slug,
+    };
+    const nodeId = await issueNode(ownerRef);
     res.status(201).json({ nodeId });
   } catch (err) {
-    if (err.code === 'OWNER_SLUG_REQUIRED' || err.code === 'OWNER_SLUG_INVALID' || err.code === 'OWNER_NOT_FOUND') {
+    if (
+      err.code === 'OWNER_SLUG_REQUIRED' ||
+      err.code === 'OWNER_SLUG_INVALID' ||
+      err.code === 'OWNER_ID_REQUIRED' ||
+      err.code === 'OWNER_ID_INVALID' ||
+      err.code === 'OWNER_REF_REQUIRED' ||
+      err.code === 'OWNER_REF_MISMATCH' ||
+      err.code === 'OWNER_NOT_FOUND'
+    ) {
       return res.status(400).json({ error: err.message, code: err.code });
     }
     res.status(500).json({ error: 'Failed to issue node' });

@@ -43,6 +43,12 @@ Run commands:
 
 Runtime configuration is read from `.env`, with starter values in `.env.example`.
 
+## Owner Ref Fields
+
+- Accepted request variants: `owner_id` or `ownerId`, and `owner_slug` or `ownerSlug`
+- Canonical internal key: `owner_id`
+- `owner_slug` is treated as alias-only
+
 ## Status
 
 Status: Alpha / Reference Implementation  
@@ -57,6 +63,11 @@ Other core AgentNet reference components:
 - https://github.com/agentnet-ai/ant-registrar
 - https://github.com/agentnet-ai/ant-resolver
 - https://github.com/agentnet-ai/ant-orchestrator
+
+## Contributing
+These repositories are reference implementations of the AgentNet architecture aligned to ANS Core v2.0.
+Issues for bug reports and spec questions are welcome.
+We do not accept unsolicited pull requests. If you would like to contribute code, please open an issue first to discuss scope, or coordinate via a partner fork.
 
 ## License
 

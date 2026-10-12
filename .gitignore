@@ -1,0 +1,80 @@
+# -----------------------------
+# Dependencies
+# -----------------------------
+node_modules/
+
+# -----------------------------
+# Environment / Secrets
+# -----------------------------
+.env
+.env.*
+!.env.example
+
+# -----------------------------
+# Logs
+# -----------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# -----------------------------
+# Build / Dist
+# -----------------------------
+dist/
+build/
+
+# -----------------------------
+# Coverage / Testing
+# -----------------------------
+coverage/
+.nyc_output/
+
+# -----------------------------
+# OS Files
+# -----------------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# IDE / Editors
+# -----------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# -----------------------------
+# Temporary Files
+# -----------------------------
+tmp/
+temp/
+
+# -----------------------------
+# Local Database Dumps
+# -----------------------------
+*.sql
+*.dump
+
+# -----------------------------
+# Lock Files (Optional Strategy)
+# -----------------------------
+# If you want reproducible builds, KEEP package-lock.json.
+# If not, uncomment below.
+# package-lock.json
+
+
+# Key material (never commit)
+**/*_private.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.kdbx
+
+# Common credential artifacts
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

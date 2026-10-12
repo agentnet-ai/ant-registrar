@@ -31,17 +31,52 @@ const normalizeOwnerSlug = (input) => {
   return slug;
 };
 
-const resolveOwnerId = async (ownerSlug) => {
-  const { ownerId } = await resolveOwner(ownerSlug);
+const normalizeOwnerId = (input) => {
+  if (isMissing(input)) {
+    const err = new Error('owner_id is required');
+    err.code = 'OWNER_ID_REQUIRED';
+    throw err;
+  }
+
+  const ownerId = Number.parseInt(String(input), 10);
+  if (!Number.isInteger(ownerId) || ownerId <= 0) {
+    const err = new Error('owner_id must be a positive integer');
+    err.code = 'OWNER_ID_INVALID';
+    throw err;
+  }
+
   return ownerId;
 };
 
-const resolveOwner = async (ownerSlug) => {
+const resolveOwnerById = async (ownerId, execute = pool.execute.bind(pool)) => {
+  const normalizedOwnerId = normalizeOwnerId(ownerId);
+  const [rows] = await execute(
+    `SELECT owner_id, owner_slug, display_name, status FROM owners WHERE owner_id = ?`,
+    [normalizedOwnerId],
+  );
+
+  if (rows.length === 0) {
+    const err = new Error(`Owner not found: ${normalizedOwnerId}`);
+    err.code = 'OWNER_NOT_FOUND';
+    throw err;
+  }
+
+  const row = rows[0];
+  return {
+    ownerId: row.owner_id,
+    ownerSlug: row.owner_slug,
+    displayName: row.display_name || null,
+    status: row.status,
+    resolvedVia: 'id',
+  };
+};
+
+const resolveOwner = async (ownerSlug, execute = pool.execute.bind(pool)) => {
   const slug = normalizeOwnerSlug(ownerSlug);
   let ownerId;
   let resolvedVia = 'canonical';
 
-  const [owners] = await pool.execute(
+  const [owners] = await execute(
     `SELECT owner_id FROM owners WHERE owner_slug = ?`,
     [slug],
   );
@@ -49,7 +84,7 @@ const resolveOwner = async (ownerSlug) => {
   if (owners.length > 0) {
     ownerId = owners[0].owner_id;
   } else {
-    const [aliases] = await pool.execute(
+    const [aliases] = await execute(
       `SELECT owner_id FROM owner_aliases WHERE alias_slug = ? AND status = 'active'`,
       [slug],
     );
@@ -63,7 +98,7 @@ const resolveOwner = async (ownerSlug) => {
     }
   }
 
-  const [rows] = await pool.execute(
+  const [rows] = await execute(
     `SELECT owner_id, owner_slug, display_name, status FROM owners WHERE owner_id = ?`,
     [ownerId],
   );
@@ -79,4 +114,58 @@ const resolveOwner = async (ownerSlug) => {
   };
 };
 
-module.exports = { resolveOwnerId, resolveOwner, normalizeOwnerSlug, DEFAULT_OWNER_SLUG };
+const resolveOwnerId = async (ownerSlug, execute = pool.execute.bind(pool)) => {
+  const { ownerId } = await resolveOwner(ownerSlug, execute);
+  return ownerId;
+};
+
+const normalizeOwnerRef = async (ownerRef, execute = pool.execute.bind(pool)) => {
+  const hasOwnerId = !isMissing(ownerRef?.ownerId);
+  const hasOwnerSlug = !isMissing(ownerRef?.ownerSlug);
+
+  if (!hasOwnerId && !hasOwnerSlug) {
+    if (defaultAllowed()) {
+      return resolveOwner(DEFAULT_OWNER_SLUG, execute);
+    }
+    const err = new Error('owner_id or owner_slug is required');
+    err.code = 'OWNER_REF_REQUIRED';
+    throw err;
+  }
+
+  let ownerFromId = null;
+  let ownerFromSlug = null;
+
+  if (hasOwnerId) {
+    ownerFromId = await resolveOwnerById(ownerRef.ownerId, execute);
+  }
+
+  if (hasOwnerSlug) {
+    ownerFromSlug = await resolveOwner(ownerRef.ownerSlug, execute);
+  }
+
+  if (ownerFromId && ownerFromSlug && ownerFromId.ownerId !== ownerFromSlug.ownerId) {
+    const err = new Error('owner_id and owner_slug refer to different owners');
+    err.code = 'OWNER_REF_MISMATCH';
+    throw err;
+  }
+
+  const resolved = ownerFromId || ownerFromSlug;
+  return {
+    ...resolved,
+    resolvedFromSlug: ownerFromSlug?.resolvedFromSlug ?? resolved.resolvedFromSlug,
+    resolvedVia:
+      ownerFromId && ownerFromSlug
+        ? 'id+slug'
+        : (ownerFromId?.resolvedVia || ownerFromSlug?.resolvedVia),
+  };
+};
+
+module.exports = {
+  resolveOwnerId,
+  resolveOwner,
+  resolveOwnerById,
+  normalizeOwnerRef,
+  normalizeOwnerSlug,
+  normalizeOwnerId,
+  DEFAULT_OWNER_SLUG,
+};
